@@ -10,19 +10,17 @@ describe('DashboardScreen constants', () => {
     expect(FOOD_PANEL_LABEL).toBe('Find Food');
   });
 
-  it('ACTIVITIES_PANEL_LABEL is "Find Stuff To Do"', () => {
-    expect(ACTIVITIES_PANEL_LABEL).toBe('Find Stuff To Do');
+  it('ACTIVITIES_PANEL_LABEL is "Up & About"', () => {
+    expect(ACTIVITIES_PANEL_LABEL).toBe('Up & About');
   });
 
   it('FOOD_PANEL_ACCESSIBILITY_LABEL is correct', () => {
-    expect(FOOD_PANEL_ACCESSIBILITY_LABEL).toBe(
-      'Find Food panel — swipe left to explore food options',
-    );
+    expect(FOOD_PANEL_ACCESSIBILITY_LABEL).toBe('Find Food tab');
   });
 
   it('ACTIVITIES_PANEL_ACCESSIBILITY_LABEL is correct', () => {
     expect(ACTIVITIES_PANEL_ACCESSIBILITY_LABEL).toBe(
-      'Find Stuff To Do panel — swipe right to explore activities',
+      'Up & About tab — events, bars, concerts and activities near you',
     );
   });
 });

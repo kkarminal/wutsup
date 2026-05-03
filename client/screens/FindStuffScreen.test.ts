@@ -7,6 +7,6 @@ describe('FindStuffScreen constants', () => {
 
   it('exports the correct label text', () => {
     expect(FIND_STUFF_LABEL).toBeDefined();
-    expect(FIND_STUFF_LABEL).toBe('Find Stuff To Do');
+    expect(FIND_STUFF_LABEL).toBe('Up & About');
   });
 });
