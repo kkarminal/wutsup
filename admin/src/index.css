@@ -1,0 +1,19 @@
+body {
+  margin: 0;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Override browser autofill background color.
+   Browsers ignore background-color on :-webkit-autofill, so we use an
+   inset box-shadow to paint over the default yellow/gray autofill tint. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 9999px #ffffff inset !important;
+  box-shadow: 0 0 0 9999px #ffffff inset !important;
+  -webkit-text-fill-color: rgba(0, 0, 0, 0.87) !important;
+}

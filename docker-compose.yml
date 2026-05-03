@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:17
+    container_name: wutsup-db
+    environment:
+      POSTGRES_DB: wutsup
+      POSTGRES_USER: wutsup
+      POSTGRES_PASSWORD: wutsup
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wutsup -d wutsup"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: wutsup-api
+    ports:
+      - "5000:5000"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=wutsup;Username=wutsup;Password=wutsup"
+      App__Environment: Local
+    depends_on:
+      db:
+        condition: service_healthy
+
+  admin:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:5000
+    container_name: wutsup-admin
+    ports:
+      - "3001:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

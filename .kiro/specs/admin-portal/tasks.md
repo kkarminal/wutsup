@@ -1,0 +1,253 @@
+# Implementation Plan: Admin Portal
+
+## Overview
+
+This plan implements the Admin Portal feature end-to-end: scaffolding the React/Vite/TypeScript web app, adding the `users` table and EF Core migration, implementing password hashing and JWT issuance in the API, building the login and dashboard pages with protected routing, and wiring everything together in Docker Compose. Tasks are ordered so each step builds on the previous.
+
+## Tasks
+
+- [x] 1. Scaffold the Admin Portal React/Vite project
+  - [x] 1.1 Initialize Vite + React + TypeScript project in `/admin`
+    - Run `npm create vite@latest admin -- --template react-ts` (or equivalent) to bootstrap the project
+    - Configure `tsconfig.json` with `"strict": true` and path aliases if needed
+    - Create top-level source directories: `src/pages`, `src/components`, `src/contexts`, `src/services`
+    - Verify the project builds without TypeScript errors via `vite build`
+    - _Requirements: 1.1, 1.2, 1.3, 1.4_
+  - [x] 1.2 Install and configure React Router
+    - Add `react-router-dom` to `/admin/package.json`
+    - Set up `<BrowserRouter>` in `App.tsx` with routes for `/login` and `/dashboard`
+    - _Requirements: 6.1, 8.1_
+  - [x] 1.3 Implement Admin Portal config loader at `/admin/src/services/config.ts`
+    - Define `AdminConfig` interface with `apiBaseUrl: string`
+    - Implement `loadConfig()` that reads `VITE_API_BASE_URL` from `import.meta.env`
+    - Throw a descriptive error naming the missing variable if `VITE_API_BASE_URL` is absent or empty
+    - Call `loadConfig()` at app startup; render an error screen if it throws
+    - _Requirements: 10.1, 10.2_
+  - [x] 1.4 Write property test for Admin Portal config loader (Property 8)
+    - **Property 8: Admin Portal config loader reports missing VITE_API_BASE_URL**
+    - File: `admin/__tests__/properties/config.property.test.ts`
+    - Use `fast-check` with minimum 100 iterations (`numRuns: 100`)
+    - For any configuration where `VITE_API_BASE_URL` is missing or empty, `loadConfig()` throws an error whose message contains `"VITE_API_BASE_URL"`
+    - Tag: `// Feature: admin-portal, Property 8: Admin Portal config loader reports missing VITE_API_BASE_URL`
+    - **Validates: Requirements 10.2**
+  - [x] 1.5 Create environment files for the Admin Portal
+    - Create `/admin/.env.local` with `VITE_API_BASE_URL=http://localhost:5000`
+    - Create `/admin/.env.production` with `VITE_API_BASE_URL=https://api.example.com` (placeholder)
+    - _Requirements: 10.3_
+
+- [x] 2. Implement AuthContext and JWT storage
+  - [x] 2.1 Implement `AuthContext` at `/admin/src/contexts/AuthContext.tsx`
+    - Define `AuthState` interface: `{ token: string | null; isAuthenticated: boolean }`
+    - Define `AuthContextValue` interface: `{ auth: AuthState; login(token: string): void; logout(): void }`
+    - `login(token)`: store JWT in `localStorage` under key `"admin_token"`, update state
+    - `logout()`: remove JWT from `localStorage`, update state
+    - On initial load: read JWT from `localStorage`; if present and not expired, restore authenticated state; otherwise treat as unauthenticated
+    - Export `AuthProvider` component and `useAuth` hook
+    - _Requirements: 7.1, 7.2, 7.3_
+  - [x] 2.2 Write property tests for JWT storage and auth state (Properties 10, 11, 12)
+    - **Property 10: JWT storage and retrieval round-trip**
+    - **Property 11: Unauthenticated navigation to protected route redirects to login**
+    - **Property 12: Logout clears JWT and redirects to login**
+    - File: `admin/__tests__/properties/auth.property.test.ts`
+    - Use `fast-check` with minimum 100 iterations (`numRuns: 100`)
+    - Property 10: For any JWT string, calling `login(token)` results in `localStorage.getItem("admin_token") === token`
+    - Property 11: For any unauthenticated state (no token or expired token), rendering a `ProtectedRoute` results in a redirect to `/login`
+    - Property 12: For any JWT stored in localStorage, calling `logout()` results in `localStorage.getItem("admin_token")` being null and the user being on the login page
+    - Tag each test: `// Feature: admin-portal, Property {N}: {description}`
+    - **Validates: Requirements 7.1, 7.3, 8.1, 8.2, 8.5**
+  - [x] 2.3 Implement `ProtectedRoute` at `/admin/src/components/ProtectedRoute.tsx`
+    - Read auth state from `AuthContext`
+    - If authenticated: render `children`
+    - If unauthenticated: render `<Navigate to="/login" replace />`
+    - _Requirements: 8.1, 8.2, 8.3_
+
+- [x] 3. Implement Login Page
+  - [x] 3.1 Implement `LoginPage` at `/admin/src/pages/LoginPage.tsx`
+    - Render an email input, a password input, and a submit button
+    - Client-side validation: if email or password is empty/whitespace, display an inline validation error and do not call the API
+    - On valid submission: call `POST /api/users/login` via the API client; disable the submit button while the request is in progress
+    - On success (200): call `AuthContext.login(token)` and navigate to `/dashboard`
+    - On failure (401): display "Invalid credentials" error message
+    - On network error: display a generic error message
+    - The page must render without a JWT (accessible to unauthenticated users)
+    - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7_
+  - [x] 3.2 Implement API client at `/admin/src/services/apiClient.ts`
+    - Create a `login(username: string, password: string): Promise<LoginResponse>` function
+    - Use `fetch` (or `axios`) with base URL from `loadConfig().apiBaseUrl`
+    - POST to `/api/users/login` with JSON body `{ username, password }`
+    - Return the parsed `LoginResponse` on success; throw typed errors on 400/401/network failure
+    - _Requirements: 6.2_
+  - [x] 3.3 Write property test for login form validation (Property 9)
+    - **Property 9: Login form does not submit with empty fields**
+    - File: `admin/__tests__/properties/loginPage.property.test.ts`
+    - Use `fast-check` with minimum 100 iterations (`numRuns: 100`)
+    - For any combination where email or password is empty or whitespace-only, activating the submit button does not call the API and a validation error is visible
+    - Tag: `// Feature: admin-portal, Property 9: Login form does not submit with empty fields`
+    - **Validates: Requirements 6.5**
+
+- [x] 4. Implement Dashboard Page
+  - [x] 4.1 Implement `DashboardPage` at `/admin/src/pages/DashboardPage.tsx`
+    - Display a placeholder layout with a heading indicating it is the admin dashboard
+    - Provide a logout button that calls `AuthContext.logout()` and navigates to `/login`
+    - _Requirements: 8.4, 8.5_
+  - [x] 4.2 Wire routes in `App.tsx`
+    - `/login` → `<LoginPage />` (public)
+    - `/dashboard` → `<ProtectedRoute><DashboardPage /></ProtectedRoute>`
+    - Default redirect: `/` → `/login`
+    - _Requirements: 8.1, 8.2, 8.3_
+
+- [x] 5. Checkpoint — Admin Portal client
+  - Run `cd admin && npx jest --run` (or equivalent) to confirm all admin tests pass
+  - Run `vite build` to confirm no TypeScript compilation errors
+  - Ask the user if any questions arise before proceeding
+
+- [x] 6. Add `users` table via EF Core migration
+  - [x] 6.1 Create `User` entity at `/api/Models/User.cs`
+    - Properties: `Id` (long), `Username` (string), `PasswordHash` (string), `Role` (string), `CreatedAt` (DateTimeOffset), `UpdatedAt` (DateTimeOffset)
+    - _Requirements: 2.1_
+  - [x] 6.2 Add `Users` DbSet to `AppDbContext` and configure the `users` table
+    - Add `public DbSet<User> Users { get; set; } = null!;` to `AppDbContext`
+    - In `OnModelCreating`: map to table `"users"`, configure column names and types per design, add unique index on `username`, set `created_at` and `updated_at` defaults to `NOW()`
+    - `role` column: `varchar(100)` to support extensible role values
+    - _Requirements: 2.1, 2.2, 2.3_
+  - [x] 6.3 Generate and apply EF Core migration for the `users` table
+    - Run `dotnet ef migrations add AddUsersTable` from the `/api` folder
+    - Verify the generated migration SQL creates the `users` table with all required columns and the unique constraint on `username`
+    - The migration will be applied automatically on Local startup via the existing `dbContext.Database.Migrate()` call in `Program.cs`
+    - _Requirements: 2.4, 2.5_
+
+- [x] 7. Implement PasswordHasher
+  - [x] 7.1 Add `BCrypt.Net-Next` NuGet package to `/api/Wutsup.Api.csproj`
+    - Add `<PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />`
+    - _Requirements: 3.1_
+  - [x] 7.2 Create `IPasswordHasher` interface at `/api/Services/IPasswordHasher.cs`
+    - `string Hash(string plaintext)`
+    - `bool Verify(string plaintext, string hash)`
+    - _Requirements: 3.1, 3.2_
+  - [x] 7.3 Implement `PasswordHasher` at `/api/Services/PasswordHasher.cs`
+    - `Hash`: call `BCrypt.Net.BCrypt.HashPassword(plaintext)` with default work factor
+    - `Verify`: call `BCrypt.Net.BCrypt.Verify(plaintext, hash)`
+    - Never log or return the plaintext password
+    - _Requirements: 3.1, 3.2, 3.3_
+  - [x] 7.4 Register `IPasswordHasher` / `PasswordHasher` as a singleton in `Program.cs`
+    - `builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();`
+    - _Requirements: 3.1_
+  - [x] 7.5 Write property tests for PasswordHasher (Properties 1 and 2)
+    - **Property 1: Password hashing is non-reversible and non-trivial**
+    - **Property 2: Password verification round-trip**
+    - File: `tests/Wutsup.Api.Tests/PasswordHasherPropertyTests.cs`
+    - Use `FsCheck` with xUnit adapter, `MaxTest = 100`
+    - Property 1: For any non-empty string, `Hash(s) != s` and `Hash(s)` is non-empty
+    - Property 2: For any non-empty string `p`, `Verify(p, Hash(p)) == true`; for any two distinct non-empty strings `p1 != p2`, `Verify(p2, Hash(p1)) == false`
+    - Tag each test: `// Feature: admin-portal, Property {N}: {description}`
+    - **Validates: Requirements 3.1, 3.2**
+
+- [x] 8. Implement JwtService
+  - [x] 8.1 Add `System.IdentityModel.Tokens.Jwt` and `Microsoft.AspNetCore.Authentication.JwtBearer` NuGet packages
+    - Add to `/api/Wutsup.Api.csproj`:
+      - `<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />`
+      - `System.IdentityModel.Tokens.Jwt` is pulled in transitively; add explicitly if needed
+    - _Requirements: 4.2, 5.1_
+  - [x] 8.2 Create `IJwtService` interface at `/api/Services/IJwtService.cs`
+    - `string GenerateToken(string username, string role)`
+    - _Requirements: 4.2, 4.5, 4.6_
+  - [x] 8.3 Implement `JwtService` at `/api/Services/JwtService.cs`
+    - Read `Jwt:Secret` and `Jwt:ExpiryMinutes` from `IConfiguration`
+    - Generate a signed JWT with claims: `sub` (username), `role`, `iat`, `exp`
+    - Use `HmacSha256` signing algorithm
+    - _Requirements: 4.2, 4.5, 4.6, 5.1, 5.2_
+  - [x] 8.4 Register `IJwtService` / `JwtService` as a scoped service in `Program.cs`
+    - `builder.Services.AddScoped<IJwtService, JwtService>();`
+    - _Requirements: 4.2_
+  - [x] 8.5 Write property tests for JwtService (Properties 5 and 6)
+    - **Property 5: JWT contains role claim matching the user's stored role**
+    - **Property 6: JWT expiry reflects configured duration**
+    - File: `tests/Wutsup.Api.Tests/JwtServicePropertyTests.cs`
+    - Use `FsCheck` with xUnit adapter, `MaxTest = 100`
+    - Property 5: For any username and any non-empty role string, the decoded JWT contains a `role` claim equal to that role
+    - Property 6: For any `ExpiryMinutes` value, the JWT `exp` claim equals `iat + (ExpiryMinutes * 60)` (within a 5-second tolerance)
+    - Tag each test: `// Feature: admin-portal, Property {N}: {description}`
+    - **Validates: Requirements 4.5, 4.6**
+
+- [x] 9. Extend ConfigValidator with JWT keys
+  - [x] 9.1 Add `Jwt:Secret` and `Jwt:ExpiryMinutes` to `ConfigValidator.RequiredKeys`
+    - Edit `/api/Configuration/ConfigValidator.cs` to include `"Jwt:Secret"` and `"Jwt:ExpiryMinutes"` in the `RequiredKeys` array
+    - _Requirements: 5.3, 5.4_
+  - [x] 9.2 Add JWT and CORS keys to all `appsettings.{Environment}.json` files
+    - Add `"Jwt": { "Secret": "<placeholder>", "ExpiryMinutes": 60 }` to `appsettings.Local.json`, `appsettings.QA.json`, `appsettings.Staging.json`, `appsettings.Production.json`
+    - Add `"Cors": { "AdminOrigin": "http://localhost:3001" }` to `appsettings.Local.json` (and appropriate values for other environments)
+    - _Requirements: 5.1, 5.2, 9.3_
+  - [x] 9.3 Update `NonEmptyKeySubsetArbitrary` in existing ConfigValidator property tests
+    - Update `RequiredKeys` in `tests/Wutsup.Api.Tests/ConfigValidatorPropertyTests.cs` to include `"Jwt:Secret"` and `"Jwt:ExpiryMinutes"` so the existing property test covers the new keys
+    - _Requirements: 5.3, 5.4_
+  - [x] 9.4 Write/verify property test for extended ConfigValidator (Property 7)
+    - **Property 7: ConfigValidator reports missing JWT configuration keys**
+    - The existing `Validate_Returns_Exactly_The_Removed_Keys` property test in `ConfigValidatorPropertyTests.cs` covers this once the required keys array is updated in step 9.3
+    - Verify the test still passes with the updated key set
+    - Tag: `// Feature: admin-portal, Property 7: ConfigValidator reports missing JWT configuration keys`
+    - **Validates: Requirements 5.3, 5.4**
+
+- [x] 10. Implement UsersController
+  - [x] 10.1 Create `LoginRequest` DTO at `/api/Models/LoginRequest.cs`
+    - Properties: `Username` (string), `Password` (string)
+    - _Requirements: 4.1_
+  - [x] 10.2 Create `LoginResponse` DTO at `/api/Models/LoginResponse.cs`
+    - Property: `Token` (string)
+    - _Requirements: 4.2_
+  - [x] 10.3 Implement `UsersController` at `/api/Controllers/UsersController.cs`
+    - Route: `[Route("api/[controller]")]`
+    - Inject `AppDbContext`, `IPasswordHasher`, `IJwtService`
+    - `POST /api/users/login`:
+      - Return 400 if `Username` or `Password` is null/empty/whitespace
+      - Look up user by `Username` (case-insensitive); if not found, return 401 with generic message
+      - Call `IPasswordHasher.Verify(request.Password, user.PasswordHash)`; if false, return 401 with same generic message
+      - On success: call `IJwtService.GenerateToken(user.Username, user.Role)`, return 200 with `LoginResponse { Token = token }`
+    - Structure the controller to accommodate future user management endpoints
+    - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.7_
+  - [x] 10.4 Write property tests for UsersController (Properties 3 and 4)
+    - **Property 3: Login endpoint rejects empty credentials**
+    - **Property 4: Login endpoint returns 401 for invalid credentials without distinguishing information**
+    - File: `tests/Wutsup.Api.Tests/UsersControllerPropertyTests.cs`
+    - Use `FsCheck` with xUnit adapter, `MaxTest = 100`; use an in-memory or test database
+    - Property 3: For any login request where username or password is null/empty/whitespace, the endpoint returns HTTP 400
+    - Property 4: For any credential pair where the username does not exist or the password does not match, the endpoint returns HTTP 401 and the response body is identical regardless of which condition failed
+    - Tag each test: `// Feature: admin-portal, Property {N}: {description}`
+    - **Validates: Requirements 4.3, 4.4**
+
+- [x] 11. Configure CORS on the API
+  - [x] 11.1 Add CORS policy to `Program.cs`
+    - Read `Cors:AdminOrigin` from `IConfiguration`
+    - Register a named CORS policy that allows the admin origin, `Content-Type` header, and `POST` method
+    - Apply the policy globally via `app.UseCors()`
+    - _Requirements: 9.1, 9.2, 9.3_
+
+- [x] 12. Checkpoint — API
+  - Run `cd tests/Wutsup.Api.Tests && dotnet test` to confirm all API tests pass
+  - Ask the user if any questions arise before proceeding
+
+- [x] 13. Docker Compose integration
+  - [x] 13.1 Create `/admin/Dockerfile`
+    - Stage 1 (build): use `node:22-alpine`, copy `package.json` and `package-lock.json`, run `npm ci`, copy source, run `vite build`
+    - Stage 2 (serve): use `nginx:alpine`, copy built output from stage 1 to `/usr/share/nginx/html`, expose port 80
+    - Include a basic `nginx.conf` that handles SPA routing (fallback to `index.html`)
+    - _Requirements: 11.4_
+  - [x] 13.2 Add `admin` service to `docker-compose.yml`
+    - Build from `./admin/Dockerfile`
+    - Map host port `3001` to container port `80`
+    - Pass `VITE_API_BASE_URL=http://localhost:5000` as a build arg (Vite bakes env vars at build time)
+    - Add `depends_on: api` so the admin service starts after the API
+    - _Requirements: 11.1, 11.2, 11.3, 11.5_
+
+- [x] 14. Final checkpoint — Full stack validation
+  - Run `cd tests/Wutsup.Api.Tests && dotnet test` to confirm all API tests pass
+  - Run `cd admin && npx jest --run` (or equivalent) to confirm all admin portal tests pass
+  - Verify `docker-compose config` succeeds (validates the compose file)
+  - Ask the user if any questions arise
+
+## Notes
+
+- Property tests use `fast-check` (TypeScript, admin portal) and `FsCheck` (C#, API) with minimum 100 iterations each
+- The `Jwt:Secret` in `appsettings.Local.json` is a placeholder; in real environments it must be injected via Docker Compose environment variables or a secrets manager
+- BCrypt work factor defaults are used; this is intentionally slow to resist brute-force attacks
+- The admin portal runs in Docker via Nginx serving the static Vite build; for local development outside Docker, `npm run dev` in `/admin` can be used
+- The existing `ConfigValidatorPropertyTests.cs` is updated in place (task 9.3) rather than creating a new file, since it tests the same class
