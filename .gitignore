@@ -1,0 +1,104 @@
+# ============================================================
+# OS
+# ============================================================
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+
+# ============================================================
+# Editors / IDEs
+# ============================================================
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# ============================================================
+# API / Tests — .NET / C#
+# ============================================================
+api/bin/
+api/obj/
+tests/**/bin/
+tests/**/obj/
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+
+# Secrets / local config (keep templates, ignore local overrides)
+api/appsettings.Local.json
+api/appsettings.Development.json
+
+# ============================================================
+# Client — React Native / Expo
+# ============================================================
+client/node_modules/
+client/.expo/
+client/dist/
+client/.env.local
+client/.env*.local
+
+# Expo generated
+client/expo-env.d.ts
+
+# ============================================================
+# Admin — React / Vite
+# ============================================================
+admin/node_modules/
+admin/dist/
+admin/.env.local
+admin/.env*.local
+
+# ============================================================
+# Docker / environment
+# ============================================================
+.env
+.env.local
+.env.*.local
+
+# ============================================================
+# Logs
+# ============================================================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ============================================================
+# Test coverage
+# ============================================================
+coverage/
+*.lcov
+.nyc_output/
