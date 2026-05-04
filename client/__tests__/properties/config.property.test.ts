@@ -13,17 +13,17 @@ import * as fc from 'fast-check';
 import { loadConfig } from '@/services/config';
 
 const REQUIRED_ENV_VARS = [
-  'API_BASE_URL',
-  'LOG_LEVEL',
-  'REMOTE_LOGGING_ENABLED',
-  'ENVIRONMENT',
+  'EXPO_PUBLIC_API_BASE_URL',
+  'EXPO_PUBLIC_LOG_LEVEL',
+  'EXPO_PUBLIC_REMOTE_LOGGING_ENABLED',
+  'EXPO_PUBLIC_ENVIRONMENT',
 ] as const;
 
 const FULL_ENV: Record<string, string> = {
-  API_BASE_URL: 'http://localhost:5000',
-  LOG_LEVEL: 'debug',
-  REMOTE_LOGGING_ENABLED: 'true',
-  ENVIRONMENT: 'local',
+  EXPO_PUBLIC_API_BASE_URL: 'http://localhost:5000',
+  EXPO_PUBLIC_LOG_LEVEL: 'debug',
+  EXPO_PUBLIC_REMOTE_LOGGING_ENABLED: 'true',
+  EXPO_PUBLIC_ENVIRONMENT: 'local',
 };
 
 /**

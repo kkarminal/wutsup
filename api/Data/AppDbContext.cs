@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
 
     public DbSet<LogEntry> Logs { get; set; } = null!;
     public DbSet<User> Users { get; set; } = null!;
+    public DbSet<NavigationNode> NavigationNodes { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -109,6 +110,55 @@ public class AppDbContext : DbContext
             entity.HasIndex(e => e.Username)
                 .HasDatabaseName("idx_users_username")
                 .IsUnique();
+        });
+
+        modelBuilder.Entity<NavigationNode>(entity =>
+        {
+            entity.ToTable("navigation_nodes");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("id")
+                .UseIdentityAlwaysColumn();
+
+            entity.Property(e => e.Label)
+                .HasColumnName("label")
+                .HasColumnType("varchar(255)")
+                .IsRequired();
+
+            entity.Property(e => e.Icon)
+                .HasColumnName("icon")
+                .HasColumnType("varchar(100)");
+
+            entity.Property(e => e.ParentId)
+                .HasColumnName("parent_id");
+
+            entity.Property(e => e.SortOrder)
+                .HasColumnName("sort_order")
+                .IsRequired()
+                .HasDefaultValue(0);
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at")
+                .HasColumnType("timestamptz")
+                .IsRequired()
+                .HasDefaultValueSql("NOW()");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnName("updated_at")
+                .HasColumnType("timestamptz")
+                .IsRequired()
+                .HasDefaultValueSql("NOW()");
+
+            entity.HasOne(e => e.Parent)
+                .WithMany(e => e.Children)
+                .HasForeignKey(e => e.ParentId)
+                .HasConstraintName("fk_navigation_nodes_parent_id")
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.ParentId)
+                .HasDatabaseName("idx_navigation_nodes_parent_id");
         });
     }
 }

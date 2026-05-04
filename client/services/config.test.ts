@@ -3,10 +3,10 @@ import { loadConfig } from './config';
 import type { ClientConfig } from './config';
 
 const FULL_ENV = {
-  API_BASE_URL: 'http://localhost:5000',
-  LOG_LEVEL: 'debug',
-  REMOTE_LOGGING_ENABLED: 'true',
-  ENVIRONMENT: 'local',
+  EXPO_PUBLIC_API_BASE_URL: 'http://localhost:5000',
+  EXPO_PUBLIC_LOG_LEVEL: 'debug',
+  EXPO_PUBLIC_REMOTE_LOGGING_ENABLED: 'true',
+  EXPO_PUBLIC_ENVIRONMENT: 'local',
 };
 
 function setEnv(overrides: Partial<Record<string, string>> = {}): void {
@@ -49,53 +49,53 @@ describe('loadConfig', () => {
       loadConfig();
     } catch (e: unknown) {
       const msg = (e as Error).message;
-      expect(msg).toContain('API_BASE_URL');
-      expect(msg).toContain('LOG_LEVEL');
-      expect(msg).toContain('REMOTE_LOGGING_ENABLED');
-      expect(msg).toContain('ENVIRONMENT');
+      expect(msg).toContain('EXPO_PUBLIC_API_BASE_URL');
+      expect(msg).toContain('EXPO_PUBLIC_LOG_LEVEL');
+      expect(msg).toContain('EXPO_PUBLIC_REMOTE_LOGGING_ENABLED');
+      expect(msg).toContain('EXPO_PUBLIC_ENVIRONMENT');
     }
   });
 
   it('throws listing only the missing variable when one is absent', () => {
     setEnv();
-    delete process.env.API_BASE_URL;
+    delete process.env.EXPO_PUBLIC_API_BASE_URL;
 
-    expect(() => loadConfig()).toThrow('API_BASE_URL');
+    expect(() => loadConfig()).toThrow('EXPO_PUBLIC_API_BASE_URL');
     try {
       loadConfig();
     } catch (e: unknown) {
       const msg = (e as Error).message;
-      expect(msg).toContain('API_BASE_URL');
-      expect(msg).not.toContain('LOG_LEVEL');
+      expect(msg).toContain('EXPO_PUBLIC_API_BASE_URL');
+      expect(msg).not.toContain('EXPO_PUBLIC_LOG_LEVEL');
     }
   });
 
   it('treats empty string as missing', () => {
-    setEnv({ API_BASE_URL: '' });
+    setEnv({ EXPO_PUBLIC_API_BASE_URL: '' });
 
-    expect(() => loadConfig()).toThrow('API_BASE_URL');
+    expect(() => loadConfig()).toThrow('EXPO_PUBLIC_API_BASE_URL');
   });
 
-  it('parses REMOTE_LOGGING_ENABLED=false correctly', () => {
-    setEnv({ REMOTE_LOGGING_ENABLED: 'false' });
+  it('parses EXPO_PUBLIC_REMOTE_LOGGING_ENABLED=false correctly', () => {
+    setEnv({ EXPO_PUBLIC_REMOTE_LOGGING_ENABLED: 'false' });
     const config = loadConfig();
     expect(config.remoteLoggingEnabled).toBe(false);
   });
 
-  it('defaults to info when LOG_LEVEL is invalid', () => {
-    setEnv({ LOG_LEVEL: 'verbose' });
+  it('defaults to info when EXPO_PUBLIC_LOG_LEVEL is invalid', () => {
+    setEnv({ EXPO_PUBLIC_LOG_LEVEL: 'verbose' });
     const config = loadConfig();
     expect(config.logLevel).toBe('info');
   });
 
-  it('handles case-insensitive LOG_LEVEL', () => {
-    setEnv({ LOG_LEVEL: 'WARN' });
+  it('handles case-insensitive EXPO_PUBLIC_LOG_LEVEL', () => {
+    setEnv({ EXPO_PUBLIC_LOG_LEVEL: 'WARN' });
     const config = loadConfig();
     expect(config.logLevel).toBe('warn');
   });
 
-  it('handles case-insensitive ENVIRONMENT', () => {
-    setEnv({ ENVIRONMENT: 'Production' });
+  it('handles case-insensitive EXPO_PUBLIC_ENVIRONMENT', () => {
+    setEnv({ EXPO_PUBLIC_ENVIRONMENT: 'Production' });
     const config = loadConfig();
     expect(config.environment).toBe('production');
   });

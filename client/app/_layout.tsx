@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ThemeProvider } from '../contexts/ThemeContext';
@@ -12,11 +13,9 @@ function AppStack() {
   return (
     <>
       <Stack>
-        <Stack.Screen name="index"     options={{ headerShown: false }} />
-        <Stack.Screen name="home"      options={{ headerShown: false }} />
-        <Stack.Screen name="settings"  options={{ headerShown: false }} />
-        <Stack.Screen name="find-food" options={{ headerShown: false }} />
-        <Stack.Screen name="find-stuff" options={{ headerShown: false }} />
+        <Stack.Screen name="index"    options={{ headerShown: false }} />
+        <Stack.Screen name="home"     options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style={theme.statusBar} />
     </>
@@ -25,10 +24,12 @@ function AppStack() {
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <AppStack />
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <AppStack />
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

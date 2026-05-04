@@ -16,10 +16,10 @@ interface EnvVarMapping {
 }
 
 const REQUIRED_ENV_VARS: readonly EnvVarMapping[] = [
-  { envVar: 'API_BASE_URL', key: 'apiBaseUrl' },
-  { envVar: 'LOG_LEVEL', key: 'logLevel' },
-  { envVar: 'REMOTE_LOGGING_ENABLED', key: 'remoteLoggingEnabled' },
-  { envVar: 'ENVIRONMENT', key: 'environment' },
+  { envVar: 'EXPO_PUBLIC_API_BASE_URL', key: 'apiBaseUrl' },
+  { envVar: 'EXPO_PUBLIC_LOG_LEVEL', key: 'logLevel' },
+  { envVar: 'EXPO_PUBLIC_REMOTE_LOGGING_ENABLED', key: 'remoteLoggingEnabled' },
+  { envVar: 'EXPO_PUBLIC_ENVIRONMENT', key: 'environment' },
 ];
 
 /**
@@ -37,11 +37,12 @@ function getEnvVar(name: string): string | undefined {
 /**
  * Loads and validates client configuration from environment variables.
  *
- * Required environment variables:
- * - API_BASE_URL
- * - LOG_LEVEL
- * - REMOTE_LOGGING_ENABLED
- * - ENVIRONMENT
+ * Required environment variables (must be prefixed with EXPO_PUBLIC_ so Expo's
+ * bundler inlines them at build time):
+ * - EXPO_PUBLIC_API_BASE_URL
+ * - EXPO_PUBLIC_LOG_LEVEL
+ * - EXPO_PUBLIC_REMOTE_LOGGING_ENABLED
+ * - EXPO_PUBLIC_ENVIRONMENT
  *
  * Throws a descriptive error listing ALL missing variable names if any are absent.
  */
@@ -60,21 +61,21 @@ export function loadConfig(): ClientConfig {
     );
   }
 
-  const rawLogLevel = getEnvVar('LOG_LEVEL')!.toLowerCase();
+  const rawLogLevel = getEnvVar('EXPO_PUBLIC_LOG_LEVEL')!.toLowerCase();
   const logLevel: LogLevel = VALID_LOG_LEVELS.includes(rawLogLevel)
     ? (rawLogLevel as LogLevel)
     : 'info';
 
-  const rawEnvironment = getEnvVar('ENVIRONMENT')!.toLowerCase();
+  const rawEnvironment = getEnvVar('EXPO_PUBLIC_ENVIRONMENT')!.toLowerCase();
   const environment: ClientConfig['environment'] = VALID_ENVIRONMENTS.includes(rawEnvironment)
     ? (rawEnvironment as ClientConfig['environment'])
     : 'local';
 
-  const rawRemoteLogging = getEnvVar('REMOTE_LOGGING_ENABLED')!.toLowerCase();
+  const rawRemoteLogging = getEnvVar('EXPO_PUBLIC_REMOTE_LOGGING_ENABLED')!.toLowerCase();
   const remoteLoggingEnabled = rawRemoteLogging === 'true';
 
   return {
-    apiBaseUrl: getEnvVar('API_BASE_URL')!,
+    apiBaseUrl: getEnvVar('EXPO_PUBLIC_API_BASE_URL')!,
     logLevel,
     remoteLoggingEnabled,
     environment,

@@ -19,6 +19,7 @@ builder.Services.AddSingleton<ILogLevelFilter, LogLevelFilter>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<ILoggingService, LoggingService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<INavigationService, NavigationService>();
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
