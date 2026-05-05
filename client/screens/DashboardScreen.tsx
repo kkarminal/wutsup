@@ -1,11 +1,13 @@
 import { useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/AppHeader';
 import { DrillOrb } from '@/components/DrillOrb';
 import { PieMenu } from '@/components/PieMenu';
+import { ResultsFeed } from '@/components/ResultsFeed';
 import { useOrbController } from '@/hooks/useOrbController';
 import { useTheme } from '@/hooks/useTheme';
+import { FONT_SIZE, SPACING } from '@/constants/colors';
 
 export {
   FOOD_PANEL_LABEL,
@@ -16,8 +18,6 @@ export {
 
 /**
  * DashboardScreen — single-page landing screen with the Drill Orb navigation.
- *
- * Requirements: 1.1, 1.2, 1.3, 1.5
  */
 export function DashboardScreen() {
   const theme = useTheme();
@@ -37,20 +37,16 @@ export function DashboardScreen() {
     retryFetch,
   } = useOrbController();
 
-  // Menu stays mounted during 'closing' so the exit animation can play
   const menuVisible = orbState === 'open' || orbState === 'animating' || orbState === 'closing';
+
+  const feedVisible = orbState === 'open' || orbState === 'animating';
+  const activeNodeId = feedVisible ? (activeNode?.id ?? null) : null;
 
   const handleOrbPress = () => {
     if (orbState === 'ready') {
-      // Measure both the root view and the FAB in window coordinates.
-      // Subtracting the root's origin gives us coordinates relative to the
-      // overlay (which is a child of the root), fixing the Android status-bar offset.
       rootRef.current?.measureInWindow((_rx, rootY) => {
         fabRef.current?.measureInWindow((fx, fy, fw, fh) => {
-          setFabPos({
-            x: fx + fw / 2,
-            y: fy + fh / 2 - rootY,
-          });
+          setFabPos({ x: fx + fw / 2, y: fy + fh / 2 - rootY });
           openMenu();
         });
       });
@@ -65,14 +61,27 @@ export function DashboardScreen() {
     <View ref={rootRef} style={[styles.root, { backgroundColor: theme.background }]}>
       <AppHeader />
 
-      {/* FAB — always visible; icon changes between + and - */}
-      <View style={styles.centre}>
+      {/* Logo — top right corner */}
+      <View style={styles.logoContainer}>
+        <Image
+          source={require('../assets/splash-icon.png')}
+          style={styles.logo}
+          resizeMode="contain"
+          accessibilityLabel="Wutsup"
+        />
+      </View>
+
+      {/* FAB with helper text — positioned below logo with enough clearance for the pie */}
+      <View style={styles.fabArea}>
+        <Text style={[styles.helperText, { color: theme.textSecondary, opacity: menuVisible ? 0 : 1 }]}>
+          Tap to see wut's up
+        </Text>
         <View ref={fabRef}>
-          <DrillOrb
-            orbState={orbState}
-            onPress={handleOrbPress}
-          />
+          <DrillOrb orbState={orbState} onPress={handleOrbPress} />
         </View>
+        <Text style={[styles.helperSubtext, { color: theme.textDisabled, opacity: menuVisible ? 0 : 1 }]}>
+          Explore events, food, bars & more
+        </Text>
       </View>
 
       {/* Pie menu overlay */}
@@ -90,6 +99,13 @@ export function DashboardScreen() {
           onCloseComplete={finalizeClose}
         />
       )}
+
+      {/* Results feed — bottom half of screen, visible when Orb Menu is open */}
+      {feedVisible && (
+        <View style={styles.feedContainer}>
+          <ResultsFeed activeNodeId={activeNodeId} visible={feedVisible} />
+        </View>
+      )}
     </View>
   );
 }
@@ -98,9 +114,42 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
+  logoContainer: {
+    alignItems: 'flex-end',
+    paddingTop: SPACING.sm,
+    paddingRight: SPACING.md,
+  },
+  logo: {
+    width: 48,
+    height: 48,
+  },
   centre: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  fabArea: {
+    flex: 1,
+    alignItems: 'center',
+    // Position FAB high enough that the pie (radius 160pt) doesn't overlap the logo
+    // Logo is ~120pt + padding 24pt = 144pt from top of content area.
+    // FAB centre needs to be at least 160pt below that.
+    paddingTop: 40,
+  },
+  helperText: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '600',
+    marginBottom: SPACING.md,
+  },
+  helperSubtext: {
+    fontSize: FONT_SIZE.sm,
+    marginTop: SPACING.sm,
+  },
+  feedContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
   },
 });

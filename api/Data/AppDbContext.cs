@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<LogEntry> Logs { get; set; } = null!;
     public DbSet<User> Users { get; set; } = null!;
     public DbSet<NavigationNode> NavigationNodes { get; set; } = null!;
+    public DbSet<DiscoveryItem> DiscoveryItems { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -159,6 +160,83 @@ public class AppDbContext : DbContext
 
             entity.HasIndex(e => e.ParentId)
                 .HasDatabaseName("idx_navigation_nodes_parent_id");
+        });
+
+        modelBuilder.Entity<DiscoveryItem>(entity =>
+        {
+            entity.ToTable("discovery_items");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("id")
+                .UseIdentityAlwaysColumn();
+
+            entity.Property(e => e.Name)
+                .HasColumnName("name")
+                .HasColumnType("varchar(500)")
+                .IsRequired();
+
+            entity.Property(e => e.Description)
+                .HasColumnName("description")
+                .HasColumnType("text")
+                .IsRequired();
+
+            entity.Property(e => e.Latitude)
+                .HasColumnName("latitude")
+                .HasColumnType("double precision")
+                .IsRequired();
+
+            entity.Property(e => e.Longitude)
+                .HasColumnName("longitude")
+                .HasColumnType("double precision")
+                .IsRequired();
+
+            entity.Property(e => e.City)
+                .HasColumnName("city")
+                .HasColumnType("varchar(255)")
+                .IsRequired();
+
+            entity.Property(e => e.Address)
+                .HasColumnName("address")
+                .HasColumnType("varchar(500)");
+
+            entity.Property(e => e.ImageUrl)
+                .HasColumnName("image_url")
+                .HasColumnType("varchar(1000)");
+
+            entity.Property(e => e.NavigationNodeId)
+                .HasColumnName("navigation_node_id")
+                .IsRequired();
+
+            entity.Property(e => e.Metadata)
+                .HasColumnName("metadata")
+                .HasColumnType("jsonb");
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at")
+                .HasColumnType("timestamptz")
+                .IsRequired()
+                .HasDefaultValueSql("NOW()");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnName("updated_at")
+                .HasColumnType("timestamptz")
+                .IsRequired()
+                .HasDefaultValueSql("NOW()");
+
+            entity.HasOne(e => e.NavigationNode)
+                .WithMany()
+                .HasForeignKey(e => e.NavigationNodeId)
+                .HasConstraintName("fk_discovery_items_navigation_node_id")
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.NavigationNodeId)
+                .HasDatabaseName("idx_discovery_items_navigation_node_id");
+
+            entity.HasIndex(e => new { e.NavigationNodeId, e.CreatedAt })
+                .HasDatabaseName("idx_discovery_items_node_created")
+                .IsDescending(false, true);
         });
     }
 }

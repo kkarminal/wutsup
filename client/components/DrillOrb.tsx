@@ -1,41 +1,49 @@
 import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import AnimatedGlow, { type PresetConfig } from 'react-native-animated-glow';
 
-import { BRAND } from '@/constants/colors';
 import { useTheme } from '@/hooks/useTheme';
 import type { OrbState } from '@/hooks/useOrbController';
+
+// Neon cyan glow preset for the FAB
+const fabGlowPreset: PresetConfig = {
+  metadata: { name: 'FAB Glow', textColor: '#FFFFFF', category: 'Custom', tags: [] },
+  states: [
+    {
+      name: 'default',
+      preset: {
+        cornerRadius: 32,
+        outlineWidth: 1.5,
+        borderColor: '#00DDFF',
+        glowLayers: [
+          { colors: ['#00DDFF', '#0088FF'], opacity: 0.6, glowSize: 12 },
+        ],
+      },
+    },
+  ],
+};
 
 export interface DrillOrbProps {
   orbState: OrbState;
   onPress: () => void;
 }
 
-/**
- * DrillOrb — the central Floating Action Button for the drill-orb navigation.
- *
- * Renders different content based on `orbState`:
- * - `loading`  : `ActivityIndicator` spinner (cross-platform, no native module required)
- * - `error`    : Ionicons `warning-outline` icon; tap to retry
- * - `ready` / `open` / `animating` : Ionicons `add` icon; tap to open menu
- *
- * Always 64×64 pt, circular (`borderRadius: 32`), `BRAND.blue` background.
- *
- * Requirements: 1.2, 1.4, 2.1, 8.2, 8.3, 10.1
- */
 export function DrillOrb({ orbState, onPress }: DrillOrbProps) {
   const theme = useTheme();
   const orbStyle = [styles.orb, { backgroundColor: theme.primary }];
 
   if (orbState === 'loading') {
     return (
-      <Pressable
-        onPress={onPress}
-        accessibilityLabel="Loading navigation"
-        accessibilityRole="button"
-        style={orbStyle}
-      >
-        <ActivityIndicator size="small" color={theme.textInverse} />
-      </Pressable>
+      <AnimatedGlow preset={fabGlowPreset}>
+        <Pressable
+          onPress={onPress}
+          accessibilityLabel="Loading navigation"
+          accessibilityRole="button"
+          style={orbStyle}
+        >
+          <ActivityIndicator size="small" color={theme.textInverse} />
+        </Pressable>
+      </AnimatedGlow>
     );
   }
 
@@ -54,9 +62,9 @@ export function DrillOrb({ orbState, onPress }: DrillOrbProps) {
     );
   }
 
-  // ready | open | animating | closing
   const isMenuActive = orbState === 'open' || orbState === 'animating' || orbState === 'closing';
-  return (
+
+  const orbButton = (
     <Pressable
       onPress={onPress}
       accessibilityLabel={isMenuActive ? 'Close navigation menu' : 'Open navigation menu'}
@@ -72,6 +80,15 @@ export function DrillOrb({ orbState, onPress }: DrillOrbProps) {
       </View>
     </Pressable>
   );
+
+  // No glow when the pie menu is visible
+  if (isMenuActive) return orbButton;
+
+  return (
+    <AnimatedGlow preset={fabGlowPreset}>
+      {orbButton}
+    </AnimatedGlow>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -81,12 +98,6 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    // Shadow for depth
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 6,
   },
   iconContainer: {
     alignItems: 'center',

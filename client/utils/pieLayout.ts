@@ -23,8 +23,13 @@ export interface ArcDescriptor {
   labelArcPath: string;
   labelPathId: string;
   labelArcHalfLength: number;
-  /** True if this segment is in the bottom half (90°–270°) — arc is reversed */
   isBottomHalf: boolean;
+  /** Label centre X for RN overlay positioning */
+  labelX: number;
+  /** Label centre Y for RN overlay positioning */
+  labelY: number;
+  /** Label rotation in degrees for RN overlay */
+  labelRotation: number;
   iconX: number;
   iconY: number;
   iconRotation: number;
@@ -66,10 +71,12 @@ function buildLabelArcPath(
   const largeArc = (endDeg - startDeg) > 180 ? 1 : 0;
   const isBottomHalf = midAngleDeg > 90 && midAngleDeg < 270;
   if (isBottomHalf) {
+    // Counter-clockwise so text reads left-to-right (right-side up)
     const from = polar(cx, cy, r, endDeg);
     const to = polar(cx, cy, r, startDeg);
     return `M ${from.x} ${from.y} A ${r} ${r} 0 ${largeArc} 0 ${to.x} ${to.y}`;
   } else {
+    // Clockwise — natural reading direction
     const from = polar(cx, cy, r, startDeg);
     const to = polar(cx, cy, r, endDeg);
     return `M ${from.x} ${from.y} A ${r} ${r} 0 ${largeArc} 1 ${to.x} ${to.y}`;
@@ -146,12 +153,8 @@ export function computeSegments(
     const spanDeg = endDeg - startDeg;
     const isBottomHalf = midAngleDeg > 90 && midAngleDeg < 270;
 
-    // Label radius: on bottom-half reversed arcs, the text baseline sits on
-    // the outer side of the curve (closer to centre visually). Bump the radius
-    // outward by ~fontSize to compensate so labels appear at the same visual
-    // position as top-half labels.
-    const effectiveLabelR = isBottomHalf ? labelR + LABEL_FONT_OFFSET : labelR;
-    const arcLength = effectiveLabelR * (spanDeg * Math.PI / 180);
+    // Label position — same radius for all segments now that labels are RN overlays
+    const arcLength = labelR * (spanDeg * Math.PI / 180);
 
     // Icon position: always at iconR (closer to centre)
     const iconPos = polar(cx, cy, iconR, midAngleDeg);
@@ -164,10 +167,15 @@ export function computeSegments(
     return {
       segmentPath: annularSectorPath(cx, cy, innerR, outerR, startDeg, endDeg),
       midAngleDeg,
-      labelArcPath: buildLabelArcPath(cx, cy, effectiveLabelR, startDeg, endDeg, midAngleDeg),
+      labelArcPath: buildLabelArcPath(cx, cy, labelR, startDeg, endDeg, midAngleDeg),
       labelPathId: `lbl-${i}`,
       labelArcHalfLength: arcLength / 2,
       isBottomHalf,
+      // Label position for RN overlay (same math as icon, different radius)
+      labelX: polar(cx, cy, labelR, midAngleDeg).x,
+      labelY: polar(cx, cy, labelR, midAngleDeg).y,
+      // Label rotation: tangent to the arc, flipped for bottom half so text reads L-to-R
+      labelRotation: isBottomHalf ? midAngleDeg - 180 : midAngleDeg,
       iconX: iconPos.x,
       iconY: iconPos.y,
       iconRotation,
