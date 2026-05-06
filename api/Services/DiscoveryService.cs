@@ -1,6 +1,7 @@
 using System.Text.Json;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 using Wutsup.Api.Data;
 using Wutsup.Api.Models;
@@ -10,10 +11,14 @@ namespace Wutsup.Api.Services;
 public class DiscoveryService : IDiscoveryService
 {
     private readonly AppDbContext _dbContext;
+    private readonly IRatingService _ratingService;
+    private readonly ILogger<DiscoveryService> _logger;
 
-    public DiscoveryService(AppDbContext dbContext)
+    public DiscoveryService(AppDbContext dbContext, IRatingService ratingService, ILogger<DiscoveryService> logger)
     {
         _dbContext = dbContext;
+        _ratingService = ratingService;
+        _logger = logger;
     }
 
     /// <inheritdoc />
@@ -65,8 +70,35 @@ public class DiscoveryService : IDiscoveryService
             DeserializeMetadata(r.Item.Metadata)
         )).ToList();
 
-        // 7. Return paginated response
-        return new DiscoveryPageResponse(items, totalCount, page, pageSize);
+        // 7. Enrich items with rating data (graceful degradation on failure)
+        List<EnrichedDiscoveryItemDto> enrichedItems;
+        try
+        {
+            enrichedItems = await _ratingService.EnrichItemsAsync(items);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Rating enrichment failed entirely. Returning items without rating data.");
+            enrichedItems = items.Select(item => new EnrichedDiscoveryItemDto(
+                item.Id,
+                item.Name,
+                item.Description,
+                item.Latitude,
+                item.Longitude,
+                item.City,
+                item.Address,
+                item.ImageUrl,
+                item.NavigationNodeId,
+                item.CategoryLabel,
+                item.Metadata,
+                null,
+                null,
+                null
+            )).ToList();
+        }
+
+        // 8. Return paginated response
+        return new DiscoveryPageResponse(enrichedItems, totalCount, page, pageSize);
     }
 
     private async Task<List<int>> GetDescendantNodeIdsAsync(int nodeId)

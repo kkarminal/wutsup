@@ -136,6 +136,7 @@ const sampleItem: DiscoveryItem = {
   navigationNodeId: 46,
   categoryLabel: 'Rock',
   metadata: { eventDate: '2025-06-15' },
+  rating: null,
 };
 
 const sampleItems: DiscoveryItem[] = [
@@ -152,6 +153,7 @@ const sampleItems: DiscoveryItem[] = [
     navigationNodeId: 51,
     categoryLabel: 'Italian',
     metadata: null,
+    rating: null,
   },
 ];
 

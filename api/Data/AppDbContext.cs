@@ -14,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<User> Users { get; set; } = null!;
     public DbSet<NavigationNode> NavigationNodes { get; set; } = null!;
     public DbSet<DiscoveryItem> DiscoveryItems { get; set; } = null!;
+    public DbSet<RatingCacheEntry> RatingCacheEntries { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -132,6 +133,10 @@ public class AppDbContext : DbContext
                 .HasColumnName("icon")
                 .HasColumnType("varchar(100)");
 
+            entity.Property(e => e.BackgroundImageUrl)
+                .HasColumnName("background_image_url")
+                .HasColumnType("varchar(1000)");
+
             entity.Property(e => e.ParentId)
                 .HasColumnName("parent_id");
 
@@ -237,6 +242,43 @@ public class AppDbContext : DbContext
             entity.HasIndex(e => new { e.NavigationNodeId, e.CreatedAt })
                 .HasDatabaseName("idx_discovery_items_node_created")
                 .IsDescending(false, true);
+        });
+
+        modelBuilder.Entity<RatingCacheEntry>(entity =>
+        {
+            entity.ToTable("rating_cache");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("id")
+                .UseIdentityAlwaysColumn();
+
+            entity.Property(e => e.DiscoveryItemId)
+                .HasColumnName("discovery_item_id")
+                .IsRequired();
+
+            entity.Property(e => e.RatingDataJson)
+                .HasColumnName("rating_data_json")
+                .HasColumnType("text")
+                .IsRequired();
+
+            entity.Property(e => e.CachedAt)
+                .HasColumnName("cached_at")
+                .HasColumnType("timestamptz")
+                .IsRequired();
+
+            entity.Property(e => e.ExpiresAt)
+                .HasColumnName("expires_at")
+                .HasColumnType("timestamptz")
+                .IsRequired();
+
+            entity.HasIndex(e => e.DiscoveryItemId)
+                .HasDatabaseName("idx_rating_cache_discovery_item_id")
+                .IsUnique();
+
+            entity.HasIndex(e => e.ExpiresAt)
+                .HasDatabaseName("idx_rating_cache_expires_at");
         });
     }
 }

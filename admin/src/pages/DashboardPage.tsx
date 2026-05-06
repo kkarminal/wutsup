@@ -8,7 +8,7 @@ import Paper from '@mui/material/Paper'
 import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
 import LogoutIcon from '@mui/icons-material/Logout'
-import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined'
+import CategoryIcon from '@mui/icons-material/Category'
 
 import { useAuth } from '../contexts/AuthContext'
 
@@ -57,29 +57,37 @@ export function DashboardPage() {
           </Typography>
         </Box>
 
-        {/* Placeholder content card */}
+        {/* Navigation cards */}
         <Paper
           elevation={0}
           variant="outlined"
           sx={{
-            p: 6,
+            p: 4,
             borderRadius: 3,
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
             gap: 2,
-            minHeight: 320,
-            borderStyle: 'dashed',
           }}
         >
-          <DashboardOutlinedIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
-          <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 500 }}>
-            Nothing here yet
-          </Typography>
-          <Typography variant="body2" color="text.disabled" sx={{ textAlign: 'center', maxWidth: 360 }}>
-            Dashboard content will appear here as features are added to the admin portal.
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <CategoryIcon sx={{ color: 'primary.main' }} />
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                Category Management
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Manage background images for navigation categories.
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => void navigate('/categories')}
+              sx={{ textTransform: 'none' }}
+            >
+              Manage
+            </Button>
+          </Box>
         </Paper>
       </Container>
     </Box>

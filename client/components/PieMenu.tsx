@@ -88,6 +88,7 @@ export interface PieMenuProps {
   isClosing: boolean;
   activeNode: NavigationNodeDto | null;
   parentNode: NavigationNodeDto | null;
+  selectedLeafId: number | null;
   fabCentreY: number;
   fabCentreX: number;
   onDrillInto: (node: NavigationNodeDto) => void;
@@ -101,6 +102,7 @@ export function PieMenu({
   isClosing,
   activeNode,
   parentNode,
+  selectedLeafId,
   fabCentreY,
   fabCentreX,
   onDrillInto,
@@ -122,6 +124,8 @@ export function PieMenu({
   const activeRotation = useSharedValue(-120);
   const parentOpacity = useSharedValue(0);
   const [shouldRender, setShouldRender] = useState(false);
+  // Track the wheel's target rotation offset so labels can counter-rotate
+  const [wheelOffsetDeg, setWheelOffsetDeg] = useState(0);
 
   useEffect(() => {
     if (visible && !isClosing) {
@@ -170,6 +174,30 @@ export function PieMenu({
     if (!visible) return;
     parentOpacity.value = withTiming(parentNode ? 1 : 0, { duration: 250 });
   }, [parentNode?.id, visible]);
+
+  // Spin the wheel to center the selected leaf at the top (12 o'clock)
+  useEffect(() => {
+    if (!visible || !activeNode) return;
+    const count = activeNode.children.length;
+    if (count === 0) return;
+
+    if (selectedLeafId == null) {
+      // No selection — animate back to default position (0°)
+      activeRotation.value = withSpring(0, { damping: 14, stiffness: 120, mass: 0.8 });
+      setWheelOffsetDeg(0);
+      return;
+    }
+
+    const index = activeNode.children.findIndex((c) => c.id === selectedLeafId);
+    if (index === -1) return;
+
+    // Each segment's midpoint angle from top (0° = 12 o'clock, clockwise)
+    const sliceDeg = 360 / count;
+    const midAngle = (index + 0.5) * sliceDeg;
+    // Rotate wheel so this midpoint is at the top
+    activeRotation.value = withSpring(-midAngle, { damping: 14, stiffness: 120, mass: 0.8 });
+    setWheelOffsetDeg(-midAngle);
+  }, [selectedLeafId, visible, activeNode]);
 
   const overlayAnimStyle = useAnimatedStyle(() => ({ opacity: overlayOpacity.value }));
   const activeRingAnimStyle = useAnimatedStyle(() => ({
@@ -277,8 +305,18 @@ export function PieMenu({
               {activeSegments.map((seg, i) => {
                 const node = children[i];
                 if (!node) return null;
+                const isSelected = node.id === selectedLeafId;
                 return (
-                  <Path key={`seg-${node.id}`} d={seg.segmentPath} fill={segmentColor(i)} onPress={() => onDrillInto(node)} accessibilityLabel={node.label} />
+                  <Path key={`seg-${node.id}`} d={seg.segmentPath} fill={segmentColor(i)} opacity={isSelected ? 1 : 0.75} onPress={() => onDrillInto(node)} accessibilityLabel={node.label} />
+                );
+              })}
+
+              {/* Highlight stroke on selected leaf segment */}
+              {selectedLeafId != null && activeSegments.map((seg, i) => {
+                const node = children[i];
+                if (!node || node.id !== selectedLeafId) return null;
+                return (
+                  <Path key={`sel-${node.id}`} d={seg.segmentPath} fill="none" stroke="#FFFFFF" strokeWidth={2.5} opacity={0.9} />
                 );
               })}
 
@@ -309,6 +347,13 @@ export function PieMenu({
             {activeSegments.map((seg, i) => {
               const node = children[i];
               if (!node) return null;
+              // Compute effective label rotation accounting for wheel spin.
+              // The wheel rotates by wheelOffsetDeg, so the label's effective
+              // position angle is its original midAngle + wheelOffsetDeg.
+              const effectiveAngle = ((seg.midAngleDeg + wheelOffsetDeg) % 360 + 360) % 360;
+              const effectivelyInBottom = effectiveAngle > 90 && effectiveAngle < 270;
+              // The label should read left-to-right based on its effective position
+              const labelRotation = effectivelyInBottom ? seg.midAngleDeg - 180 : seg.midAngleDeg;
               return (
                 <View
                   key={`label-${node.id}`}
@@ -318,7 +363,7 @@ export function PieMenu({
                     {
                       left: seg.labelX,
                       top: seg.labelY,
-                      transform: [{ rotate: `${seg.labelRotation}deg` }],
+                      transform: [{ rotate: `${labelRotation}deg` }],
                     },
                   ]}
                 >
@@ -331,6 +376,10 @@ export function PieMenu({
             {activeSegments.map((seg, i) => {
               const node = children[i];
               if (!node?.icon) return null;
+              // Compute effective icon rotation accounting for wheel spin
+              const effectiveAngle = ((seg.midAngleDeg + wheelOffsetDeg) % 360 + 360) % 360;
+              const effectivelyInBottom = effectiveAngle > 90 && effectiveAngle < 270;
+              const iconRotation = effectivelyInBottom ? seg.midAngleDeg + 180 : seg.midAngleDeg;
               return (
                 <View
                   key={`icon-${node.id}`}
@@ -340,7 +389,7 @@ export function PieMenu({
                     {
                       left: seg.iconX - ICON_SIZE / 2,
                       top: seg.iconY - ICON_SIZE / 2,
-                      transform: [{ rotate: `${seg.iconRotation}deg` }],
+                      transform: [{ rotate: `${iconRotation}deg` }],
                     },
                   ]}
                 >

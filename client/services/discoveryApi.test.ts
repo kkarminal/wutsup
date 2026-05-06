@@ -22,6 +22,7 @@ function makePageResponse(overrides: Partial<DiscoveryPageResponse> = {}): Disco
         navigationNodeId: 6,
         categoryLabel: 'Music',
         metadata: { eventDate: '2025-06-01' },
+        rating: null,
       },
     ],
     totalCount: 1,

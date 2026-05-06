@@ -5,6 +5,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles'
 import { AuthProvider } from './contexts/AuthContext'
 import { LoginPage } from './pages/LoginPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { CategoryManagementPage } from './pages/CategoryManagementPage'
 import { ProtectedRoute } from './components/ProtectedRoute'
 
 const theme = createTheme({
@@ -37,6 +38,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/categories"
+              element={
+                <ProtectedRoute>
+                  <CategoryManagementPage />
                 </ProtectedRoute>
               }
             />

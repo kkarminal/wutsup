@@ -2,6 +2,7 @@ export interface NavigationNodeDto {
   id: number;
   label: string;
   icon: string | null;
+  backgroundImageUrl: string | null;
   parentId: number | null;
   sortOrder: number;
   children: NavigationNodeDto[];

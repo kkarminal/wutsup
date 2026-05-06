@@ -1,6 +1,6 @@
 /**
  * Tests for DiscoveryCard component logic.
- * Feature: discovery-results-feed
+ * Feature: discovery-results-feed, discovery-ratings-reviews
  *
  * @testing-library/react-native is not available in this project, so we
  * test the component's prop-to-render mapping logic directly — the same
@@ -9,6 +9,7 @@
 
 import { FONT_SIZE, FONT_WEIGHT } from '@/constants/colors';
 import type { DiscoveryItem } from '@/services/discoveryApi';
+import { parseMenuMetadata, parseEventMetadata } from '@/utils/metadataParsing';
 
 // ─── Helpers that mirror DiscoveryCard's internal logic ──────────────────────
 
@@ -43,6 +44,14 @@ function resolveDescriptionNumberOfLines(): number {
  */
 function resolveShowsImage(item: DiscoveryItem): boolean {
   return item.imageUrl !== null && item.imageUrl !== undefined;
+}
+
+/**
+ * Determines whether the star rating section should be shown.
+ * Mirrors: item.rating && <StarRatingDisplay ... />
+ */
+function resolveShowsStarRating(item: DiscoveryItem): boolean {
+  return item.rating !== null && item.rating !== undefined;
 }
 
 /**
@@ -86,6 +95,7 @@ const itemWithImage: DiscoveryItem = {
   navigationNodeId: 46,
   categoryLabel: 'Rock',
   metadata: { eventDate: '2025-06-15', venue: 'Main Stage' },
+  rating: null,
 };
 
 const itemWithoutImage: DiscoveryItem = {
@@ -99,14 +109,69 @@ const itemWithoutImage: DiscoveryItem = {
   imageUrl: null,
   navigationNodeId: 51,
   categoryLabel: 'Italian',
-  metadata: { cuisineType: 'Italian', priceRange: '$$' },
+  metadata: { cuisineType: 'Italian', priceRange: '$' },
+  rating: null,
+};
+
+const itemWithRating: DiscoveryItem = {
+  id: 3,
+  name: 'Sushi Palace',
+  description: 'Fresh sushi and sashimi in a modern setting.',
+  latitude: 34.0522,
+  longitude: -118.2437,
+  city: 'Los Angeles',
+  address: '789 Sushi Blvd',
+  imageUrl: 'https://picsum.photos/seed/3/400/300',
+  navigationNodeId: 52,
+  categoryLabel: 'Asian',
+  metadata: {
+    menuItems: [
+      { name: 'Dragon Roll', price: '$15' },
+      { name: 'Salmon Sashimi', price: '$12' },
+    ],
+  },
+  rating: {
+    rating: 4.5,
+    reviewCount: 128,
+    reviews: [
+      {
+        authorName: 'John D.',
+        rating: 5,
+        text: 'Best sushi in town!',
+        relativeTimeDescription: '2 weeks ago',
+      },
+    ],
+  },
+};
+
+const itemWithEvents: DiscoveryItem = {
+  id: 4,
+  name: 'Jazz Club',
+  description: 'Live jazz every weekend.',
+  latitude: 40.7128,
+  longitude: -74.006,
+  city: 'New York',
+  address: '101 Jazz Ave',
+  imageUrl: null,
+  navigationNodeId: 46,
+  categoryLabel: 'Jazz',
+  metadata: {
+    events: [
+      { name: 'Friday Night Jazz', date: '2025-06-20', description: 'Live performance' },
+      { name: 'Saturday Blues', date: '2025-06-21' },
+    ],
+  },
+  rating: {
+    rating: 4.2,
+    reviewCount: 56,
+    reviews: [],
+  },
 };
 
 // ─── Name rendering ───────────────────────────────────────────────────────────
 
 describe('DiscoveryCard — name rendering', () => {
   it('renders the item name', () => {
-    // The component renders item.name as the title Text content
     expect(itemWithImage.name).toBe('The Velvet Underground');
   });
 
@@ -245,5 +310,142 @@ describe('DiscoveryCard — map thumbnail', () => {
     expect(itemWithImage.latitude).toBeLessThanOrEqual(90);
     expect(itemWithImage.longitude).toBeGreaterThanOrEqual(-180);
     expect(itemWithImage.longitude).toBeLessThanOrEqual(180);
+  });
+});
+
+// ─── Star rating display logic ────────────────────────────────────────────────
+
+describe('DiscoveryCard — star rating display', () => {
+  it('shows star rating when item has rating data', () => {
+    expect(resolveShowsStarRating(itemWithRating)).toBe(true);
+  });
+
+  it('omits star rating when item has no rating data', () => {
+    expect(resolveShowsStarRating(itemWithImage)).toBe(false);
+  });
+
+  it('omits star rating when rating is null', () => {
+    expect(resolveShowsStarRating(itemWithoutImage)).toBe(false);
+  });
+});
+
+// ─── Expand/collapse behavior ─────────────────────────────────────────────────
+
+describe('DiscoveryCard — expand/collapse', () => {
+  it('DiscoveryCardProps includes isExpanded boolean', () => {
+    const props = { item: itemWithImage, isExpanded: false, onToggleExpand: () => {} };
+    expect(typeof props.isExpanded).toBe('boolean');
+  });
+
+  it('DiscoveryCardProps includes onToggleExpand callback', () => {
+    const props = { item: itemWithImage, isExpanded: false, onToggleExpand: () => {} };
+    expect(typeof props.onToggleExpand).toBe('function');
+  });
+
+  it('expanded card shows reviews from rating data', () => {
+    // When expanded and item has rating with reviews, ExpandedCardView receives them
+    const reviews = itemWithRating.rating?.reviews ?? [];
+    expect(reviews.length).toBe(1);
+    expect(reviews[0].authorName).toBe('John D.');
+  });
+
+  it('expanded card shows empty reviews array when no rating', () => {
+    const reviews = itemWithImage.rating?.reviews ?? [];
+    expect(reviews).toEqual([]);
+  });
+});
+
+// ─── Metadata parsing ─────────────────────────────────────────────────────────
+
+describe('DiscoveryCard — parseMenuMetadata', () => {
+  it('returns undefined for null metadata', () => {
+    expect(parseMenuMetadata(null)).toBeUndefined();
+  });
+
+  it('returns undefined when no menuItems key exists', () => {
+    expect(parseMenuMetadata({ cuisineType: 'Italian' })).toBeUndefined();
+  });
+
+  it('returns undefined when menuItems is empty array', () => {
+    expect(parseMenuMetadata({ menuItems: [] })).toBeUndefined();
+  });
+
+  it('parses valid menu items', () => {
+    const metadata = {
+      menuItems: [
+        { name: 'Dragon Roll', price: '$15' },
+        { name: 'Salmon Sashimi', price: '$12' },
+      ],
+    };
+    const result = parseMenuMetadata(metadata);
+    expect(result).toBeDefined();
+    expect(result!.items).toHaveLength(2);
+    expect(result!.items[0].name).toBe('Dragon Roll');
+    expect(result!.items[0].price).toBe('$15');
+  });
+
+  it('filters out items with empty names', () => {
+    const metadata = {
+      menuItems: [
+        { name: '', price: '$5' },
+        { name: 'Valid Item', price: '$10' },
+      ],
+    };
+    const result = parseMenuMetadata(metadata);
+    expect(result).toBeDefined();
+    expect(result!.items).toHaveLength(1);
+    expect(result!.items[0].name).toBe('Valid Item');
+  });
+
+  it('handles items without price', () => {
+    const metadata = {
+      menuItems: [{ name: 'Special', notPrice: 123 }],
+    };
+    const result = parseMenuMetadata(metadata);
+    expect(result).toBeDefined();
+    expect(result!.items[0].price).toBeUndefined();
+  });
+});
+
+describe('DiscoveryCard — parseEventMetadata', () => {
+  it('returns undefined for null metadata', () => {
+    expect(parseEventMetadata(null)).toBeUndefined();
+  });
+
+  it('returns undefined when no events key exists', () => {
+    expect(parseEventMetadata({ venue: 'Main Stage' })).toBeUndefined();
+  });
+
+  it('returns undefined when events is empty array', () => {
+    expect(parseEventMetadata({ events: [] })).toBeUndefined();
+  });
+
+  it('parses valid event metadata', () => {
+    const metadata = {
+      events: [
+        { name: 'Friday Night Jazz', date: '2025-06-20', description: 'Live performance' },
+        { name: 'Saturday Blues', date: '2025-06-21' },
+      ],
+    };
+    const result = parseEventMetadata(metadata);
+    expect(result).toBeDefined();
+    expect(result!.events).toHaveLength(2);
+    expect(result!.events[0].name).toBe('Friday Night Jazz');
+    expect(result!.events[0].date).toBe('2025-06-20');
+    expect(result!.events[0].description).toBe('Live performance');
+    expect(result!.events[1].description).toBeUndefined();
+  });
+
+  it('filters out events with empty names', () => {
+    const metadata = {
+      events: [
+        { name: '', date: '2025-01-01' },
+        { name: 'Valid Event' },
+      ],
+    };
+    const result = parseEventMetadata(metadata);
+    expect(result).toBeDefined();
+    expect(result!.events).toHaveLength(1);
+    expect(result!.events[0].name).toBe('Valid Event');
   });
 });

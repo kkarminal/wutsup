@@ -101,6 +101,24 @@ public class NavigationService : INavigationService
             node.SortOrder = request.SortOrder.Value;
         }
 
+        if (request.UpdateBackgroundImageUrl == true)
+        {
+            if (request.BackgroundImageUrl != null)
+            {
+                if (!Uri.TryCreate(request.BackgroundImageUrl, UriKind.Absolute, out var uri)
+                    || (uri.Scheme != "http" && uri.Scheme != "https"))
+                {
+                    throw new ArgumentException("BackgroundImageUrl must be a valid absolute HTTP or HTTPS URL.");
+                }
+
+                node.BackgroundImageUrl = request.BackgroundImageUrl;
+            }
+            else
+            {
+                node.BackgroundImageUrl = null;
+            }
+        }
+
         node.UpdatedAt = DateTimeOffset.UtcNow;
 
         await _dbContext.SaveChangesAsync();
@@ -142,6 +160,7 @@ public class NavigationService : INavigationService
             node.Id,
             node.Label,
             node.Icon,
+            node.BackgroundImageUrl,
             node.ParentId,
             node.SortOrder,
             children);

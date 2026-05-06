@@ -1,12 +1,24 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import { useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '@/hooks/useTheme';
 import { FONT_SIZE, FONT_WEIGHT, RADIUS, SPACING } from '@/constants/colors';
+import { StarRatingDisplay } from '@/components/StarRatingDisplay';
+import { ExpandedCardView } from '@/components/ExpandedCardView';
 import type { DiscoveryItem } from '@/services/discoveryApi';
+
+export { parseMenuMetadata, parseEventMetadata } from '@/utils/metadataParsing';
 
 export interface DiscoveryCardProps {
   item: DiscoveryItem;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
 }
 
 /**
@@ -36,90 +48,134 @@ function getCategoryIcon(categoryLabel: string): React.ComponentProps<typeof Ion
   return 'location-outline';
 }
 
+const ANIMATION_DURATION = 300;
+
 /**
  * DiscoveryCard — renders a single discovery item as a card.
  *
  * Displays the item name, description (truncated to 2 lines), a map
- * thumbnail placeholder with city name, a category badge, and either
- * the item image or a category-appropriate placeholder icon.
+ * thumbnail placeholder with city name, a category badge, star rating
+ * (when available), and either the item image or a category-appropriate
+ * placeholder icon.
+ *
+ * Supports expand/collapse with animated transitions over 300ms.
+ * When expanded, renders the ExpandedCardView with reviews, menu, and event data.
  */
-export function DiscoveryCard({ item }: DiscoveryCardProps) {
+export function DiscoveryCard({ item, isExpanded, onToggleExpand }: DiscoveryCardProps) {
   const theme = useTheme();
 
+  // Animation values for expand/collapse
+  const expandProgress = useSharedValue(isExpanded ? 1 : 0);
+
+  useEffect(() => {
+    expandProgress.value = withTiming(isExpanded ? 1 : 0, {
+      duration: ANIMATION_DURATION,
+    });
+  }, [isExpanded, expandProgress]);
+
+  const expandedStyle = useAnimatedStyle(() => ({
+    opacity: expandProgress.value,
+    maxHeight: expandProgress.value * 1000,
+  }));
+
   return (
-    <View
-      style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
+    <Pressable
+      onPress={onToggleExpand}
       accessibilityLabel={`${item.name}, ${item.categoryLabel}`}
+      accessibilityRole="button"
+      accessibilityState={{ expanded: isExpanded }}
     >
-      {/* Image or placeholder */}
-      <View style={styles.imageContainer}>
-        {item.imageUrl ? (
-          <Image
-            source={{ uri: item.imageUrl }}
-            style={styles.image}
-            accessibilityLabel={`Image of ${item.name}`}
-          />
-        ) : (
-          <View style={[styles.imagePlaceholder, { backgroundColor: theme.surfaceRaised }]}>
-            <Ionicons
-              name={getCategoryIcon(item.categoryLabel)}
-              size={32}
-              color={theme.textSecondary}
-            />
+      <View
+        style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
+      >
+        {/* Image or placeholder */}
+        <View style={styles.topRow}>
+          <View style={styles.imageContainer}>
+            {item.imageUrl ? (
+              <Image
+                source={{ uri: item.imageUrl }}
+                style={styles.image}
+                accessibilityLabel={`Image of ${item.name}`}
+              />
+            ) : (
+              <View style={[styles.imagePlaceholder, { backgroundColor: theme.surfaceRaised }]}>
+                <Ionicons
+                  name={getCategoryIcon(item.categoryLabel)}
+                  size={32}
+                  color={theme.textSecondary}
+                />
+              </View>
+            )}
           </View>
-        )}
-      </View>
 
-      {/* Content */}
-      <View style={styles.content}>
-        {/* Name */}
-        <Text
-          style={[styles.name, { color: theme.textPrimary }]}
-          numberOfLines={1}
-        >
-          {item.name}
-        </Text>
+          {/* Content */}
+          <View style={styles.content}>
+            {/* Name */}
+            <Text
+              style={[styles.name, { color: theme.textPrimary }]}
+              numberOfLines={1}
+            >
+              {item.name}
+            </Text>
 
-        {/* Description */}
-        <Text
-          style={[styles.description, { color: theme.textSecondary }]}
-          numberOfLines={2}
-        >
-          {item.description}
-        </Text>
+            {/* Description */}
+            <Text
+              style={[styles.description, { color: theme.textSecondary }]}
+              numberOfLines={2}
+            >
+              {item.description}
+            </Text>
 
-        {/* Bottom row: map thumbnail + city and category badge */}
-        <View style={styles.bottomRow}>
-          {/* Map thumbnail placeholder + city */}
-          <View style={styles.locationContainer}>
-            <View style={[styles.mapThumbnail, { backgroundColor: theme.surfaceRaised }]}>
-              <Ionicons name="map-outline" size={16} color={theme.textSecondary} />
+            {/* Star Rating — shown when rating data is available */}
+            {item.rating && (
+              <View style={styles.ratingContainer}>
+                <StarRatingDisplay rating={item.rating.rating} reviewCount={item.rating.reviewCount} />
+              </View>
+            )}
+
+            {/* Bottom row: map thumbnail + city and category badge */}
+            <View style={styles.bottomRow}>
+              {/* Map thumbnail placeholder + city */}
+              <View style={styles.locationContainer}>
+                <View style={[styles.mapThumbnail, { backgroundColor: theme.surfaceRaised }]}>
+                  <Ionicons name="map-outline" size={16} color={theme.textSecondary} />
+                </View>
+                <Text style={[styles.city, { color: theme.textSecondary }]} numberOfLines={1}>
+                  {item.city}
+                </Text>
+              </View>
+
+              {/* Category badge */}
+              <View style={[styles.categoryBadge, { backgroundColor: theme.primarySubtle }]}>
+                <Text style={[styles.categoryBadgeText, { color: theme.primary }]} numberOfLines={1}>
+                  {item.categoryLabel}
+                </Text>
+              </View>
             </View>
-            <Text style={[styles.city, { color: theme.textSecondary }]} numberOfLines={1}>
-              {item.city}
-            </Text>
-          </View>
-
-          {/* Category badge */}
-          <View style={[styles.categoryBadge, { backgroundColor: theme.primarySubtle }]}>
-            <Text style={[styles.categoryBadgeText, { color: theme.primary }]} numberOfLines={1}>
-              {item.categoryLabel}
-            </Text>
           </View>
         </View>
+
+        {/* Expanded content with animation */}
+        {isExpanded && (
+          <Animated.View style={[styles.expandedContainer, expandedStyle]}>
+            <ExpandedCardView item={item} />
+          </Animated.View>
+        )}
       </View>
-    </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: 'row',
     borderRadius: RADIUS.md,
     borderWidth: 1,
     padding: SPACING.sm,
     marginHorizontal: SPACING.md,
     marginVertical: SPACING.xs,
+  },
+  topRow: {
+    flexDirection: 'row',
   },
   imageContainer: {
     width: 80,
@@ -149,6 +205,9 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: FONT_SIZE.sm,
+    marginTop: SPACING.xs,
+  },
+  ratingContainer: {
     marginTop: SPACING.xs,
   },
   bottomRow: {
@@ -183,5 +242,8 @@ const styles = StyleSheet.create({
   categoryBadgeText: {
     fontSize: FONT_SIZE.xs,
     fontWeight: FONT_WEIGHT.medium,
+  },
+  expandedContainer: {
+    overflow: 'hidden',
   },
 });

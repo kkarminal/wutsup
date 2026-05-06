@@ -25,6 +25,7 @@ describe('Property 8 — DiscoveryCard renders required information', () => {
     navigationNodeId: fc.nat(),
     categoryLabel: fc.string({ minLength: 1 }),
     metadata: fc.constant(null),
+    rating: fc.constant(null),
   }) as fc.Arbitrary<DiscoveryItem>;
 
   it('accessibilityLabel format is `${item.name}, ${item.categoryLabel}` for any valid DiscoveryItem', () => {
@@ -174,6 +175,7 @@ describe('Property 10 — Request cancellation on rapid node changes', () => {
           navigationNodeId: nodeId,
           categoryLabel: `Category ${nodeId}`,
           metadata: null,
+          rating: null,
         },
       ],
       totalCount: 1,
@@ -316,6 +318,7 @@ describe('Property 11 — Pagination terminates correctly', () => {
         navigationNodeId: nodeId,
         categoryLabel: 'Test Category',
         metadata: null,
+        rating: null,
       });
     }
     return items;
@@ -412,6 +415,7 @@ describe('Property 12 — Page append stability', () => {
       navigationNodeId: fc.nat(),
       categoryLabel: fc.string({ minLength: 1 }),
       metadata: fc.constant(null),
+      rating: fc.constant(null),
     }) as fc.Arbitrary<DiscoveryItem>;
 
   /**
@@ -432,6 +436,7 @@ describe('Property 12 — Page append stability', () => {
         navigationNodeId: fc.nat(),
         categoryLabel: fc.string({ minLength: 1 }),
         metadata: fc.constant(null),
+        rating: fc.constant(null),
       }) as fc.Arbitrary<DiscoveryItem>,
       { minLength: 1, maxLength: 20 },
     ),
@@ -572,6 +577,7 @@ describe('Property 9 — Feed reacts to active node changes', () => {
           navigationNodeId: nodeId,
           categoryLabel: `Category ${nodeId}`,
           metadata: null,
+          rating: null,
         },
       ],
       totalCount: 1,

@@ -14,6 +14,7 @@ export interface OrbControllerResult {
   orbState: OrbState;
   activeNode: NavigationNodeDto | null;
   parentNode: NavigationNodeDto | null;
+  selectedLeaf: NavigationNodeDto | null;
   breadcrumb: string[];
   breadcrumbIds: number[];
   childNodes: NavigationNodeDto[];
@@ -52,7 +53,7 @@ function buildNodeMap(
  * 2. If running on Android and the env URL points to localhost, rewrite to 10.0.2.2.
  * 3. Fall back to the env var as-is (correct for iOS simulator and production).
  */
-function resolveApiBaseUrl(): string {
+export function resolveApiBaseUrl(): string {
   const envUrl = loadConfig().apiBaseUrl;
 
   // 1. Expo Go dev server host — works for both physical devices and emulators
@@ -92,6 +93,7 @@ export function useOrbController(): OrbControllerResult {
   const [breadcrumb, setBreadcrumb] = useState<string[]>([]);
   const [breadcrumbIds, setBreadcrumbIds] = useState<number[]>([]);
   const [childNodes, setChildNodes] = useState<NavigationNodeDto[]>([]);
+  const [selectedLeaf, setSelectedLeaf] = useState<NavigationNodeDto | null>(null);
 
   const treeRoot = useRef<NavigationNodeDto | null>(null);
   const nodeMap = useRef<Map<number, NavigationNodeDto>>(new Map());
@@ -139,6 +141,7 @@ export function useOrbController(): OrbControllerResult {
     setOrbState('ready');
     setActiveNode(null);
     setParentNode(null);
+    setSelectedLeaf(null);
     setBreadcrumb([]);
     setBreadcrumbIds([]);
     setChildNodes([]);
@@ -149,11 +152,14 @@ export function useOrbController(): OrbControllerResult {
       if (isAnimating.value === true) return;
 
       if (node.children.length === 0) {
-        // Leaf node — emit selection event and close
-        console.log('Navigation selection:', { id: node.id, label: node.label });
-        closeMenu();
+        // Leaf node — select it but keep the wheel showing the current children.
+        // The wheel stays visible with this node highlighted, and results show below.
+        setSelectedLeaf(node);
         return;
       }
+
+      // Clear any previous leaf selection when drilling into a branch
+      setSelectedLeaf(null);
 
       isAnimating.value = true;
       setParentNode(activeNode);
@@ -168,11 +174,17 @@ export function useOrbController(): OrbControllerResult {
         setOrbState('open');
       }, DRILL_ANIMATION_DURATION);
     },
-    [isAnimating, closeMenu]
+    [isAnimating, closeMenu, activeNode]
   );
 
   const navigateBack = useCallback(() => {
     if (isAnimating.value === true) return;
+
+    // If a leaf is selected, just deselect it first
+    if (selectedLeaf != null) {
+      setSelectedLeaf(null);
+      return;
+    }
 
     const root = treeRoot.current;
     if (!activeNode || !root) return;
@@ -211,7 +223,7 @@ export function useOrbController(): OrbControllerResult {
       isAnimating.value = false;
       setOrbState('open');
     }, BACK_ANIMATION_DURATION);
-  }, [isAnimating, activeNode, closeMenu]);
+  }, [isAnimating, activeNode, selectedLeaf, closeMenu]);
 
   const navigateTo = useCallback(
     (nodeId: number) => {
@@ -219,6 +231,9 @@ export function useOrbController(): OrbControllerResult {
 
       const node = nodeMap.current.get(nodeId);
       if (!node) return;
+
+      // Clear leaf selection when jumping via breadcrumb
+      setSelectedLeaf(null);
 
       setBreadcrumbIds((prevIds) => {
         const index = prevIds.indexOf(nodeId);
@@ -248,6 +263,7 @@ export function useOrbController(): OrbControllerResult {
     orbState,
     activeNode,
     parentNode,
+    selectedLeaf,
     breadcrumb,
     breadcrumbIds,
     childNodes,

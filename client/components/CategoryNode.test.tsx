@@ -50,6 +50,7 @@ const nonLeafNode: NavigationNodeDto = {
   id: 2,
   label: 'Events',
   icon: null,
+  backgroundImageUrl: null,
   parentId: 1,
   sortOrder: 0,
   children: [
@@ -57,6 +58,7 @@ const nonLeafNode: NavigationNodeDto = {
       id: 6,
       label: 'Music',
       icon: null,
+      backgroundImageUrl: null,
       parentId: 2,
       sortOrder: 0,
       children: [],
@@ -68,6 +70,7 @@ const leafNode: NavigationNodeDto = {
   id: 6,
   label: 'Music',
   icon: null,
+  backgroundImageUrl: null,
   parentId: 2,
   sortOrder: 0,
   children: [],

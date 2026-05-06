@@ -256,7 +256,7 @@ public class NavigationServicePropertyTests
         var rootId = await SeedRootAsync(dbContext, "Original");
 
         // Update the root node with the generated input.
-        var updateRequest = new UpdateNavigationNodeRequest(input.Label, input.Icon, input.SortOrder);
+        var updateRequest = new UpdateNavigationNodeRequest(input.Label, input.Icon, input.SortOrder, null, null);
         await service.UpdateNodeAsync(rootId, updateRequest);
 
         // Fetch the tree and verify the root reflects the update.
@@ -317,7 +317,7 @@ public class NavigationServiceExampleTests
         using var dbContext = CreateInMemoryDbContext();
         var service = CreateService(dbContext);
 
-        var request = new UpdateNavigationNodeRequest("New Label", null, null);
+        var request = new UpdateNavigationNodeRequest("New Label", null, null, null, null);
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() => service.UpdateNodeAsync(9999, request));
     }
@@ -373,7 +373,7 @@ public class NavigationServiceExampleTests
 
         var rootId = await SeedRootAsync(dbContext);
 
-        var updateRequest = new UpdateNavigationNodeRequest("Updated Label", "star-outline", 5);
+        var updateRequest = new UpdateNavigationNodeRequest("Updated Label", "star-outline", 5, null, null);
         var dto = await service.UpdateNodeAsync(rootId, updateRequest);
 
         Assert.Equal("Updated Label", dto.Label);

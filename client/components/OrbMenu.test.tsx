@@ -56,13 +56,14 @@ const rootNode: NavigationNodeDto = {
   id: 1,
   label: "What's Up",
   icon: null,
+  backgroundImageUrl: null,
   parentId: null,
   sortOrder: 0,
   children: [],
 };
 
 function makeChildNode(id: number, label: string): NavigationNodeDto {
-  return { id, label, icon: null, parentId: 1, sortOrder: id - 2, children: [] };
+  return { id, label, icon: null, backgroundImageUrl: null, parentId: 1, sortOrder: id - 2, children: [] };
 }
 
 const fourChildNodes: NavigationNodeDto[] = [

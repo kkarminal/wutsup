@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 
 using Wutsup.Api.Configuration;
 using Wutsup.Api.Data;
@@ -21,6 +22,27 @@ builder.Services.AddScoped<ILoggingService, LoggingService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<INavigationService, NavigationService>();
 builder.Services.AddScoped<IDiscoveryService, DiscoveryService>();
+builder.Services.AddScoped<IRatingCacheStore, RatingCacheStore>();
+builder.Services.AddScoped<IRatingService, RatingService>();
+
+// Register PlacesClient — use FakePlacesClient for local dev when no real API key is configured
+var placesApiKey = builder.Configuration["GooglePlaces:ApiKey"] ?? string.Empty;
+var useFakePlaces = string.IsNullOrEmpty(placesApiKey)
+    || placesApiKey.Equals("YOUR_API_KEY_HERE", StringComparison.OrdinalIgnoreCase);
+
+if (useFakePlaces)
+{
+    builder.Services.AddSingleton<IPlacesClient, FakePlacesClient>();
+}
+else
+{
+    var placesTimeoutSeconds = builder.Configuration.GetValue<int>("GooglePlaces:TimeoutSeconds", 5);
+    builder.Services.AddHttpClient<IPlacesClient, PlacesClient>(client =>
+    {
+        client.Timeout = TimeSpan.FromSeconds(placesTimeoutSeconds);
+    });
+}
+
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
@@ -31,8 +53,8 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AdminPortalPolicy", policy =>
     {
         policy.WithOrigins(adminOrigin)
-              .WithHeaders("Content-Type")
-              .WithMethods("POST", "GET", "OPTIONS");
+              .WithHeaders("Content-Type", "Authorization")
+              .WithMethods("POST", "GET", "PUT", "OPTIONS");
     });
 });
 
@@ -64,6 +86,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AdminPortalPolicy");
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "images")),
+    RequestPath = "/images"
+});
+
 app.MapControllers();
 
 app.Run();

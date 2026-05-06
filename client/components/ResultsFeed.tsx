@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -45,11 +45,15 @@ export function ResultsFeed({ activeNodeId, visible }: ResultsFeedProps) {
 
   const flatListRef = useRef<FlatList<DiscoveryItem>>(null);
 
-  // Reset scroll position when activeNodeId changes
+  // Single-expanded-card state: only one card can be expanded at a time
+  const [expandedItemId, setExpandedItemId] = useState<number | null>(null);
+
+  // Reset scroll position and collapse expanded card when activeNodeId changes
   useEffect(() => {
     if (flatListRef.current) {
       flatListRef.current.scrollToOffset({ offset: 0, animated: false });
     }
+    setExpandedItemId(null);
   }, [activeNodeId]);
 
   const handleEndReached = useCallback(() => {
@@ -58,9 +62,19 @@ export function ResultsFeed({ activeNodeId, visible }: ResultsFeedProps) {
     }
   }, [hasMore, loadingMore, loading, fetchNextPage]);
 
+  const handleToggleExpand = useCallback((itemId: number) => {
+    setExpandedItemId((prev) => (prev === itemId ? null : itemId));
+  }, []);
+
   const renderItem = useCallback(
-    ({ item }: { item: DiscoveryItem }) => <DiscoveryCard item={item} />,
-    [],
+    ({ item }: { item: DiscoveryItem }) => (
+      <DiscoveryCard
+        item={item}
+        isExpanded={item.id === expandedItemId}
+        onToggleExpand={() => handleToggleExpand(item.id)}
+      />
+    ),
+    [expandedItemId, handleToggleExpand],
   );
 
   const keyExtractor = useCallback(
@@ -108,7 +122,7 @@ export function ResultsFeed({ activeNodeId, visible }: ResultsFeedProps) {
       <Animated.View
         entering={FadeIn.duration(300)}
         exiting={FadeOut.duration(300)}
-        style={[styles.container, { backgroundColor: theme.background }]}
+        style={[styles.container, { backgroundColor: 'transparent' }]}
       >
         <View style={styles.centered}>
           <ActivityIndicator
@@ -127,7 +141,7 @@ export function ResultsFeed({ activeNodeId, visible }: ResultsFeedProps) {
       <Animated.View
         entering={FadeIn.duration(300)}
         exiting={FadeOut.duration(300)}
-        style={[styles.container, { backgroundColor: theme.background }]}
+        style={[styles.container, { backgroundColor: 'transparent' }]}
       >
         <View style={styles.centered}>
           <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
@@ -153,7 +167,7 @@ export function ResultsFeed({ activeNodeId, visible }: ResultsFeedProps) {
       <Animated.View
         entering={FadeIn.duration(300)}
         exiting={FadeOut.duration(300)}
-        style={[styles.container, { backgroundColor: theme.background }]}
+        style={[styles.container, { backgroundColor: 'transparent' }]}
       >
         <View style={styles.centered}>
           <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
@@ -168,13 +182,14 @@ export function ResultsFeed({ activeNodeId, visible }: ResultsFeedProps) {
     <Animated.View
       entering={FadeIn.duration(300)}
       exiting={FadeOut.duration(300)}
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={[styles.container, { backgroundColor: 'transparent' }]}
     >
       <FlatList
         ref={flatListRef}
         data={items}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
+        extraData={expandedItemId}
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.5}
         ListFooterComponent={renderFooter}

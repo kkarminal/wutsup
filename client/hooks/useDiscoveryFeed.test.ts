@@ -28,6 +28,7 @@ function createMockItem(overrides: Partial<DiscoveryItem> = {}): DiscoveryItem {
     navigationNodeId: 5,
     categoryLabel: 'Rock',
     metadata: null,
+    rating: null,
     ...overrides,
   };
 }

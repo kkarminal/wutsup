@@ -158,6 +158,10 @@ namespace Wutsup.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("BackgroundImageUrl")
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("background_image_url");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamptz")
@@ -195,6 +199,44 @@ namespace Wutsup.Api.Migrations
                         .HasDatabaseName("idx_navigation_nodes_parent_id");
 
                     b.ToTable("navigation_nodes", (string)null);
+                });
+
+            modelBuilder.Entity("Wutsup.Api.Models.RatingCacheEntry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("CachedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("cached_at");
+
+                    b.Property<int>("DiscoveryItemId")
+                        .HasColumnType("integer")
+                        .HasColumnName("discovery_item_id");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("RatingDataJson")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("rating_data_json");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DiscoveryItemId")
+                        .IsUnique()
+                        .HasDatabaseName("idx_rating_cache_discovery_item_id");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("idx_rating_cache_expires_at");
+
+                    b.ToTable("rating_cache", (string)null);
                 });
 
             modelBuilder.Entity("Wutsup.Api.Models.User", b =>

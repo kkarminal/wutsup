@@ -1,3 +1,34 @@
+export interface Review {
+  authorName: string;
+  rating: number;
+  text: string;
+  relativeTimeDescription: string;
+}
+
+export interface RatingData {
+  rating: number;
+  reviewCount: number;
+  reviews: Review[];
+}
+
+export interface DayHours {
+  day: string;
+  hours: string;
+}
+
+export interface HoursData {
+  weekdayHours: DayHours[];
+}
+
+export interface HourPopularity {
+  hour: number;
+  popularityPercent: number;
+}
+
+export interface BusyTimesData {
+  hourlyPopularity: HourPopularity[];
+}
+
 export interface DiscoveryItem {
   id: number;
   name: string;
@@ -10,6 +41,9 @@ export interface DiscoveryItem {
   navigationNodeId: number;
   categoryLabel: string;
   metadata: Record<string, unknown> | null;
+  rating: RatingData | null;
+  hours: HoursData | null;
+  busyTimes: BusyTimesData | null;
 }
 
 export interface DiscoveryPageResponse {
